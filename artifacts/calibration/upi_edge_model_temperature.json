@@ -1,0 +1,7 @@
+{
+  "T": 1.031471,
+  "applied": false,
+  "fit": "temperature scaling on the validation split",
+  "nll_valid_before": 0.004602,
+  "nll_valid_after": 0.004597
+}

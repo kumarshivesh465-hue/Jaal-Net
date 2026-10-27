@@ -1,0 +1,47 @@
+{
+  "gnn_pytorch": {
+    "model": "gnn_graphsage",
+    "auc_pr": 0.514,
+    "auc_roc": 0.9234,
+    "precision_at_100": 1.0,
+    "precision_at_1000": 1.0,
+    "recall_at_1pct_fpr": 0.4888,
+    "n": 404570,
+    "positives": 4570,
+    "base_rate": 0.0113
+  },
+  "gnn_onnx": {
+    "model": "onnx_runtime",
+    "auc_pr": 0.514,
+    "auc_roc": 0.9234,
+    "precision_at_100": 1.0,
+    "precision_at_1000": 1.0,
+    "recall_at_1pct_fpr": 0.4888,
+    "n": 404570,
+    "positives": 4570,
+    "base_rate": 0.0113
+  },
+  "baseline": {
+    "model": "logreg_tabular_baseline",
+    "auc_pr": 0.6809,
+    "auc_roc": 0.9847,
+    "precision_at_100": 1.0,
+    "precision_at_1000": 0.944,
+    "recall_at_1pct_fpr": 0.7302,
+    "n": 404570,
+    "positives": 4570,
+    "base_rate": 0.0113
+  },
+  "catboost_extended": {
+    "model": "catboost_extended",
+    "auc_pr": 1.0,
+    "auc_roc": 1.0,
+    "precision_at_100": 1.0,
+    "precision_at_1000": 1.0,
+    "recall_at_1pct_fpr": 1.0,
+    "n": 404570,
+    "positives": 4570,
+    "base_rate": 0.0113
+  },
+  "pretrained_backbone_coverage": 0.0
+}

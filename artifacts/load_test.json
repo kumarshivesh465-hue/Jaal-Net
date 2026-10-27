@@ -1,0 +1,280 @@
+{
+  "generated_at": "2026-10-28T11:21:38+00:00",
+  "target": "/score",
+  "base_url": "http://127.0.0.1:8000",
+  "spawned_server": false,
+  "workers": null,
+  "requests_per_run": 50,
+  "repeats": 1,
+  "total_score_requests": 50,
+  "concurrency": 10,
+  "warmup_requests": 5,
+  "budget_ms": 300.0,
+  "headline_client": "raw",
+  "headline": {
+    "client": "raw",
+    "p50_ms": 23.39,
+    "p95_ms": 26.87,
+    "p99_ms": 27.23,
+    "p99_ms_best": 27.23,
+    "p99_ms_worst": 27.23,
+    "p99_ms_all": [
+      27.23
+    ],
+    "server_p99_ms": 2.0,
+    "throughput_rps": 413.34,
+    "budget_ms": 300.0,
+    "passed": true
+  },
+  "runs": {
+    "httpx": {
+      "client": "httpx",
+      "requests": 50,
+      "ok": 50,
+      "errors": 0,
+      "error_samples": [],
+      "throughput_rps": 91.92,
+      "wall_seconds": 0.544,
+      "latency_ms": {
+        "n": 50,
+        "min": 38.31,
+        "p50": 72.15,
+        "p95": 249.04,
+        "p99": 352.01,
+        "max": 352.01,
+        "mean": 98.94
+      },
+      "server_latency_ms": {
+        "n": 50,
+        "min": 1.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0,
+        "max": 2.0,
+        "mean": 1.02
+      },
+      "baseline_sequential_ms": {
+        "n": 5,
+        "min": 7.14,
+        "p50": 7.46,
+        "p95": 70.72,
+        "p99": 70.72,
+        "max": 70.72,
+        "mean": 20.16
+      },
+      "per_payload": {
+        "benign": {
+          "n": 17,
+          "min": 41.23,
+          "p50": 66.48,
+          "p95": 352.01,
+          "p99": 352.01,
+          "max": 352.01,
+          "mean": 103.3,
+          "score_min": 0,
+          "score_max": 0,
+          "score_p50": 0.0
+        },
+        "ring": {
+          "n": 17,
+          "min": 38.31,
+          "p50": 72.15,
+          "p95": 249.04,
+          "p99": 249.04,
+          "max": 249.04,
+          "mean": 88.35,
+          "score_min": 100,
+          "score_max": 100,
+          "score_p50": 100.0
+        },
+        "legacy": {
+          "n": 16,
+          "min": 44.22,
+          "p50": 75.81,
+          "p95": 270.46,
+          "p99": 270.46,
+          "max": 270.46,
+          "mean": 105.55,
+          "score_min": 3,
+          "score_max": 3,
+          "score_p50": 3.0
+        }
+      },
+      "planned_per_payload": {
+        "benign": 17,
+        "ring": 17,
+        "legacy": 16
+      },
+      "health": {
+        "model_contract": "upi",
+        "embeddings_loaded": 20000,
+        "calibrated": false
+      },
+      "repeats": 1,
+      "throughput_rps_all": [
+        91.92
+      ],
+      "p99_ms_all": [
+        352.01
+      ],
+      "p99_ms_median": 352.01,
+      "p99_ms_best": 352.01,
+      "p99_ms_worst": 352.01,
+      "checks": [
+        {
+          "name": "no failed requests",
+          "passed": true,
+          "detail": "0 non-200 of 50"
+        },
+        {
+          "name": "ring payloads score above benign payloads",
+          "passed": true,
+          "detail": "ring p50 score 100.0 vs benign 0.0"
+        },
+        {
+          "name": "legacy (PaySim-only) payloads all succeed",
+          "passed": true,
+          "detail": "16/16 legacy 200s"
+        },
+        {
+          "name": "p99 within 300 ms budget on every repeat",
+          "passed": false,
+          "detail": "worst 352.01 ms of [352.01]"
+        }
+      ],
+      "client_bound": true
+    },
+    "raw": {
+      "client": "raw",
+      "requests": 50,
+      "ok": 50,
+      "errors": 0,
+      "error_samples": [],
+      "throughput_rps": 413.34,
+      "wall_seconds": 0.121,
+      "latency_ms": {
+        "n": 50,
+        "min": 7.64,
+        "p50": 23.39,
+        "p95": 26.87,
+        "p99": 27.23,
+        "max": 27.23,
+        "mean": 22.01
+      },
+      "server_latency_ms": {
+        "n": 50,
+        "min": 1.0,
+        "p50": 1.0,
+        "p95": 1.0,
+        "p99": 2.0,
+        "max": 2.0,
+        "mean": 1.02
+      },
+      "baseline_sequential_ms": {
+        "n": 5,
+        "min": 2.1,
+        "p50": 3.28,
+        "p95": 3.81,
+        "p99": 3.81,
+        "max": 3.81,
+        "mean": 3.15
+      },
+      "per_payload": {
+        "benign": {
+          "n": 17,
+          "min": 7.64,
+          "p50": 23.57,
+          "p95": 26.85,
+          "p99": 26.85,
+          "max": 26.85,
+          "mean": 21.38,
+          "score_min": 0,
+          "score_max": 0,
+          "score_p50": 0.0
+        },
+        "ring": {
+          "n": 17,
+          "min": 9.4,
+          "p50": 23.22,
+          "p95": 27.23,
+          "p99": 27.23,
+          "max": 27.23,
+          "mean": 22.02,
+          "score_min": 100,
+          "score_max": 100,
+          "score_p50": 100.0
+        },
+        "legacy": {
+          "n": 16,
+          "min": 13.02,
+          "p50": 23.44,
+          "p95": 26.87,
+          "p99": 26.87,
+          "max": 26.87,
+          "mean": 22.68,
+          "score_min": 3,
+          "score_max": 3,
+          "score_p50": 3.0
+        }
+      },
+      "planned_per_payload": {
+        "benign": 17,
+        "ring": 17,
+        "legacy": 16
+      },
+      "health": {
+        "model_contract": "upi",
+        "embeddings_loaded": 20000,
+        "calibrated": false
+      },
+      "repeats": 1,
+      "throughput_rps_all": [
+        413.34
+      ],
+      "p99_ms_all": [
+        27.23
+      ],
+      "p99_ms_median": 27.23,
+      "p99_ms_best": 27.23,
+      "p99_ms_worst": 27.23,
+      "checks": [
+        {
+          "name": "no failed requests",
+          "passed": true,
+          "detail": "0 non-200 of 50"
+        },
+        {
+          "name": "ring payloads score above benign payloads",
+          "passed": true,
+          "detail": "ring p50 score 100.0 vs benign 0.0"
+        },
+        {
+          "name": "legacy (PaySim-only) payloads all succeed",
+          "passed": true,
+          "detail": "16/16 legacy 200s"
+        },
+        {
+          "name": "p99 within 300 ms budget on every repeat",
+          "passed": true,
+          "detail": "worst 27.23 ms of [27.23]"
+        }
+      ],
+      "client_bound": false
+    }
+  },
+  "headline_reason": "the generator that achieved the highest throughput; the lower-throughput generator is client-bound and its wall latency describes that client, not the service",
+  "slower_runs": [
+    "httpx"
+  ],
+  "method": {
+    "percentiles": "nearest-rank, no interpolation",
+    "latency": "client wall clock around POST /score, includes queueing and HTTP overhead; an upper bound",
+    "client_bound": "throughput < 50% of the fastest generator run against the same server",
+    "repeats": "median p99 across repeats is the headline; the budget check uses the worst repeat"
+  },
+  "environment": {
+    "python": "3.11.9",
+    "platform": "Windows-10-10.0.26200-SP0",
+    "cpu_count": 8
+  }
+}

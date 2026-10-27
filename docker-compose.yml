@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  exasol:
+    image: exasol/docker-db:7.1.30
+    container_name: exasol
+    # Exasol needs privileged mode for its block-device / filesystem setup.
+    privileged: true
+    ports:
+      - "8563:8563"
+    environment:
+      - EXASOL_PASSWORD=${EXASOL_PASSWORD:-}
+    volumes:
+      - exasol_storage:/exa
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "8000:8000"
+    environment:
+      - EXASOL_DSN=${EXASOL_DSN:-localhost:8563}
+      - EXASOL_USER=${EXASOL_USER:-sys}
+      - EXASOL_PASSWORD=${EXASOL_PASSWORD:-}
+      - LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  exasol_storage:
+
+# NOTE: `exasol` is optional. If it is not started (or EXASOL_PASSWORD is
+# empty) every service runs in mock mode with the full demo experience.
+# The database reaches readiness well after the HTTP services; run
+#   docker compose up -d exasol && python scripts/init_exasol.py
+# before expecting live reads.

@@ -1,0 +1,28 @@
+# Dashboard
+streamlit>=1.33.0
+streamlit-autorefresh>=1.0.1
+plotly>=5.20.0
+pandas>=2.0.0
+numpy>=1.26.0
+networkx>=3.2
+
+# Backend
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+
+# Inference
+onnxruntime>=1.16.0
+
+# Training baselines + pretrained weight loading
+catboost>=1.2.0
+safetensors>=0.4.0
+
+# Data
+pyexasol>=0.25.0
+
+# Tests
+pytest>=7.4.0
+httpx>=0.24.0
+
+# See requirements.lock for the exact frozen versions actually installed.

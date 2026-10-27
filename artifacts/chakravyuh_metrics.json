@@ -1,0 +1,23 @@
+{
+  "resource": "chakravyuh-bench-v0 (CC-BY-4.0, test-only split)",
+  "n": 175,
+  "positives": 144,
+  "base_rate": 0.8229,
+  "auc_pr": 0.8188,
+  "auc_roc": 0.4983,
+  "by_difficulty": {
+    "easy": {
+      "n": 30,
+      "auc_roc": 0.3798
+    },
+    "hard": {
+      "n": 33,
+      "auc_roc": 0.6
+    },
+    "medium": {
+      "n": 78,
+      "auc_roc": 0.5152
+    }
+  },
+  "scope_note": "Adapter projects scenario metadata onto the 6-feature contract; measures scoring-service ranking, not GNN transfer (bench has no account edges)."
+}

@@ -1,0 +1,81 @@
+{
+  "model": "upi_edge_model",
+  "onnx": "artifacts/upi_edge_model.onnx",
+  "n_bins": 15,
+  "min_bin_count_for_mce": 50,
+  "prob_eps": 1e-06,
+  "valid_n": 10000,
+  "test_n": 10000,
+  "pos_rate": 0.0305,
+  "temperature_eps": 0.05,
+  "temperature_applied_at_serving": false,
+  "served_method": "uncalibrated",
+  "uncalibrated": {
+    "ece": 0.006749,
+    "mce": 0.012576,
+    "mce_all_bins": 0.792984,
+    "nll": 0.048214,
+    "brier": 0.006715,
+    "auc_roc": 0.981279,
+    "auc_pr": 0.870413
+  },
+  "temperature": {
+    "ece": 0.006717,
+    "mce": 0.01227,
+    "mce_all_bins": 0.786177,
+    "nll": 0.046836,
+    "brier": 0.00671,
+    "auc_roc": 0.981279,
+    "auc_pr": 0.870413,
+    "T": 1.031471
+  },
+  "isotonic": {
+    "ece": 0.006371,
+    "mce": 0.007934,
+    "mce_all_bins": 0.15873,
+    "nll": 0.087101,
+    "brier": 0.006681,
+    "auc_roc": 0.888668,
+    "auc_pr": 0.774173,
+    "knots": 12
+  },
+  "gates": [
+    {
+      "gate": "test_auc_roc >= 0.98",
+      "served_value": 0.981279,
+      "threshold": 0.98,
+      "pass": true
+    },
+    {
+      "gate": "test_auc_pr >= 0.85",
+      "served_value": 0.870413,
+      "threshold": 0.85,
+      "pass": true
+    },
+    {
+      "gate": "test_ece <= 0.05",
+      "served_value": 0.006749,
+      "threshold": 0.05,
+      "pass": true
+    },
+    {
+      "gate": "test_mce <= 0.15",
+      "served_value": 0.012576,
+      "threshold": 0.15,
+      "pass": true
+    },
+    {
+      "gate": "test_nll <= 0.20",
+      "served_value": 0.048214,
+      "threshold": 0.2,
+      "pass": true
+    },
+    {
+      "gate": "test_brier <= 0.05",
+      "served_value": 0.006715,
+      "threshold": 0.05,
+      "pass": true
+    }
+  ],
+  "gates_pass": true
+}
