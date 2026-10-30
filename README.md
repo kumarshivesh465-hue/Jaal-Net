@@ -7,6 +7,14 @@
 [![Frontend: React + Vite](https://img.shields.io/badge/Frontend-React%20%2B%20Vite%20%2B%20Tailwind-61DAFB?logo=react&logoColor=black)](https://vitejs.dev/)
 [![Tests: 192 Passed](https://img.shields.io/badge/Tests-192%20Passed-10B981?logo=pytest&logoColor=white)](tests/)
 
+<br>
+
+[![Watch Demo Video](https://img.shields.io/badge/🎬_Demo_Video-Watch_Recording-EA4335?style=for-the-badge&logo=googlechrome&logoColor=white)](https://drive.google.com/file/d/18pRCCXecgeMHlqCNs_AOq-J5wdcrEgmt/view?usp=drivesdk)
+[![View Pitch Deck](https://img.shields.io/badge/📊_Pitch_Deck-View_Slides-4285F4?style=for-the-badge&logo=googledrive&logoColor=white)](https://docs.google.com/presentation/d/1xKAwJvsYTz-s5GZreGrQAoHK46vexONP/edit?usp=drivesdk&ouid=100725784589270096471&rtpof=true&sd=true)
+
+> 🎥 **Live Demo Video:** [Watch Full Walkthrough on Google Drive](https://drive.google.com/file/d/18pRCCXecgeMHlqCNs_AOq-J5wdcrEgmt/view?usp=drivesdk)  
+> 📑 **Interactive Pitch Deck:** [Open Slides on Google Docs](https://docs.google.com/presentation/d/1xKAwJvsYTz-s5GZreGrQAoHK46vexONP/edit?usp=drivesdk&ouid=100725784589270096471&rtpof=true&sd=true)
+
 ---
 
 ## 1. Overview
