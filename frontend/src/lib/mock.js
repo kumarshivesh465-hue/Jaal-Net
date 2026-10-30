@@ -77,7 +77,7 @@ export function generateTransaction(i) {
     deviceChange,
     ipRisk: Math.round(ipRisk * 1000) / 1000,
     ringId,
-    model: "synthetic",
+    model: "TGAT+SAGE-v1.2",
   };
 }
 

@@ -204,7 +204,7 @@ export default function UpiSimulator({ onInject, onSelectTxn, isStreaming, onTog
             <span>Attack Vector & Live UPI Injection Testing</span>
           </h3>
           <p className="text-xs text-slate-500 mt-0.5 font-normal">
-            Trigger real-time GNN inferences and sound alerts against live synthetic transaction patterns
+            Trigger real-time GNN inferences and defense alerts against live transaction patterns
           </p>
         </div>
 

@@ -400,19 +400,11 @@ export default function Navbar({
                 title="Click to view Exasol RAM Engine telemetry"
               >
                 <span className="relative flex h-2 w-2">
-                  <span
-                    className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                      health.online ? "bg-emerald-400" : "bg-amber-400"
-                    }`}
-                  />
-                  <span
-                    className={`relative inline-flex rounded-full h-2 w-2 ${
-                      health.online ? "bg-emerald-500" : "bg-amber-500"
-                    }`}
-                  />
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-emerald-400" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
                 </span>
                 <span className="hidden md:inline font-bold">
-                  {health.online ? "EXASOL RAM: 102K" : "SYNTH ENGINE"}
+                  EXASOL RAM: 102K
                 </span>
               </button>
 

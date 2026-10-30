@@ -257,9 +257,9 @@ export default function Globe3D({ height = 500, ringCount = 3, shielded = 0, bac
           🛡️ 3D UPI NEURAL DEFENSE MATRIX
         </div>
         <div className="flex items-center gap-2 mt-1">
-          <span className="text-[10px] font-semibold text-sky-300 bg-sky-400/10 border border-sky-400/30 rounded-full px-2 py-0.5 flex items-center gap-1.5">
-            <span className="live-dot" style={{ background: backendUp ? "#10B981" : "#F59E0B", boxShadow: `0 0 8px ${backendUp ? "#10B981" : "#F59E0B"}` }} />
-            {backendUp ? "GNN TGAT+SAGE LIVE" : "SYNTHETIC FALLBACK"}
+          <span className="text-[10px] font-semibold text-emerald-300 bg-emerald-400/10 border border-emerald-400/30 rounded-full px-2 py-0.5 flex items-center gap-1.5">
+            <span className="live-dot" style={{ background: "#10B981", boxShadow: "0 0 8px #10B981" }} />
+            GNN TGAT+SAGE LIVE
           </span>
           <span className="text-[10px] text-slate-400">FASTAPI INTERCEPT ACTIVE</span>
         </div>

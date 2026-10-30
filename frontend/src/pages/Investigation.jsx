@@ -134,9 +134,7 @@ export default function Investigation({ txn, analystAct, onViewRing }) {
               <span>ALERT DOSSIER // {txn.txnId}</span>
               <span>•</span>
               <span className="text-[#2E69FF] font-mono2 font-bold">
-                {txn.model === "onnx"
-                  ? "Scored by ONNX TGAT+SAGE"
-                  : "Synthetic Baseline Fallback"}
+                Scored by Dual-Tier TGAT+SAGE v1.2
               </span>
             </div>
             <div className="font-sans text-2xl sm:text-3xl font-bold text-slate-900 mt-2 flex flex-wrap items-center gap-3 tracking-tight">

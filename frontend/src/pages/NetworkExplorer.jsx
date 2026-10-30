@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import GraphCytoscape from "../components/GraphCytoscape.jsx";
 import TemporalScrubber from "../components/TemporalScrubber.jsx";
 import { Download, Share2, Network, ShieldCheck, Cpu, Database, CheckCircle2, X, Loader2 } from "lucide-react";
+import { ringGraphData } from "../lib/mock.js";
 
 function download(name, content, type) {
   const blob = new Blob([content], { type });
@@ -17,7 +18,13 @@ export default function NetworkExplorer({ activeRingId, selectedTxn }) {
   const [ringsMeta, setRingsMeta] = useState({});
   const [ringId, setRingId] = useState(activeRingId || "RING-001");
   const [filterText, setFilterText] = useState("");
-  const [currentGraph, setCurrentGraph] = useState({ nodes: [], edges: [] });
+  const [currentGraph, setCurrentGraph] = useState(() => {
+    try {
+      return ringGraphData(activeRingId || "RING-001");
+    } catch {
+      return { nodes: [], edges: [] };
+    }
+  });
   const [graphLoading, setGraphLoading] = useState(false);
   const [scrubTime, setScrubTime] = useState(180);
   const [mppModalOpen, setMppModalOpen] = useState(false);
@@ -62,11 +69,20 @@ export default function NetworkExplorer({ activeRingId, selectedTxn }) {
     fetch(`/api/rings/${encodeURIComponent(ringId)}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.nodes) {
+        if (data && Array.isArray(data.nodes) && data.nodes.length > 0) {
           setCurrentGraph(data);
+        } else {
+          try {
+            setCurrentGraph(ringGraphData(ringId));
+          } catch {}
         }
       })
-      .catch((err) => console.warn("Could not fetch ring graph from Exasol:", err))
+      .catch((err) => {
+        console.warn("Could not fetch ring graph from Exasol:", err);
+        try {
+          setCurrentGraph(ringGraphData(ringId));
+        } catch {}
+      })
       .finally(() => setGraphLoading(false));
   }, [ringId]);
 

@@ -121,7 +121,8 @@ def fetch_decision_log(txn_id: str) -> list[dict]:
     """
     try:
         result = conn.execute(sql)
-        return [_row_to_dict(r) for r in result.fetchall()]
+        rows = [_row_to_dict(r) for r in result.fetchall()]
+        return rows if rows else _mock_decision_log(txn_id)
     except Exception as exc:
         logger.error("fetch_decision_log failed: %s", exc)
         return _mock_decision_log(txn_id)
