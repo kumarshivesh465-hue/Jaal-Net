@@ -106,8 +106,8 @@ Traditional banking antifraud systems rely on single-transaction rule engines (e
 
 #### 1. Clone the Repository
 ```bash
-git clone https://github.com/kumarshivesh465-hue/jaal-net.git
-cd jaal-net
+git clone https://github.com/kumarshivesh465-hue/Jaal-Net.git
+cd Jaal-Net
 ```
 
 #### 2. Configure Python Virtual Environment
