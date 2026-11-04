@@ -50,7 +50,7 @@ Traditional banking antifraud systems rely on single-transaction rule engines (e
 │  • 100,000+ Transaction Ledger (`UPI_TRANSACTIONS`)                         │
 │  • 20,000 Graph Account Nodes (`UPI_ACCOUNTS`)                              │
 │  • Thread-Safe PyExasol Connection Pool with Dedicated Channels             │
-│  • In-Database Parallel Louvain UDF (`jaalnet_louvain_detector`)             │
+│  • In-Database Parallel Louvain UDF (`jaalnet_louvain_detector`)            │
 │  • In-Memory 2-Hop Subgraph Traversal in < 0.8ms                            │
 │  • Async Auditable Decision Logging (`DECISION_LOG`)                        │
 └─────────────────────────────────────┬───────────────────────────────────────┘
@@ -72,7 +72,7 @@ Traditional banking antifraud systems rely on single-transaction rule engines (e
 │                    JAALNET COMMAND CENTER & WAR ROOM                        │
 │  • Sub-2ms Real-Time Verdict Reactor: ALLOW | MONITOR | STEP_UP | BLOCK     │
 │  • Pre-Flight Merchant Shield (Zero False Freezes for Kiranas & QR Retail)  │
-│  • Autonomous AI Investigator: 4-Hour Forensic Triage reduced to < 4 Seconds │
+│  • Autonomous AI Investigator: 4-Hour Forensic Triage reduced to < 4 Seconds│
 │  • Regulatory Auto-Dispatch: FINnet 2.0 FIU-IND STR & CrPC 91 Lien Orders   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
