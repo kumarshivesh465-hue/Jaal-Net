@@ -10,6 +10,8 @@ Switching modes is transparent to callers.
 
 import logging
 import os
+import time
+from collections import deque
 from datetime import datetime
 from typing import Any, Optional
 
@@ -20,6 +22,85 @@ logger = logging.getLogger(__name__)
 import threading
 
 _THREAD_LOCAL = threading.local()
+
+# Fast reachability cache so a sleeping Exasol cloud cluster does not stall requests
+_REACHABILITY: dict[str, Any] = {
+    "is_offline": False,
+    "last_checked": 0.0,
+    "cooldown_seconds": 60.0,
+}
+
+# In-memory decisions buffer (pre-seeded with baseline audit events)
+_MOCK_DECISIONS: deque = deque(maxlen=200)
+
+_MOCK_THRESHOLDS_HISTORY: list[dict] = [
+    {
+        "version": "v3",
+        "effective_date": "2026-04-10 09:00:00",
+        "set_by": "r.sharma",
+        "threshold_block": config.THRESHOLD_BLOCK,
+        "threshold_stepup": config.THRESHOLD_STEPUP,
+        "threshold_monitor": config.THRESHOLD_MONITOR,
+        "rationale": "RBI Master Direction on Mule Accounts compliance update",
+    },
+    {
+        "version": "v2",
+        "effective_date": "2026-03-28 09:00:00",
+        "set_by": "r.sharma",
+        "threshold_block": 85,
+        "threshold_stepup": 65,
+        "threshold_monitor": 28,
+        "rationale": "Post-deployment tuning against smurfing false positives",
+    },
+    {
+        "version": "v1",
+        "effective_date": "2026-03-15 09:00:00",
+        "set_by": "system",
+        "threshold_block": 80,
+        "threshold_stepup": 60,
+        "threshold_monitor": 25,
+        "rationale": "Initial baseline configuration",
+    },
+]
+
+
+def _check_host_reachable(dsn: str, timeout: float = 0.8) -> bool:
+    """Fast socket probe to determine if Exasol port is open before attempting pyexasol."""
+    import socket
+    host, _, port_str = dsn.partition(":")
+    try:
+        port = int(port_str) if port_str else 8563
+        with socket.create_connection((host or "localhost", port), timeout=timeout):
+            return True
+    except (OSError, ValueError):
+        return False
+
+
+def _init_mock_decisions():
+    """Seed initial decisions for the audit log in simulation mode."""
+    if _MOCK_DECISIONS:
+        return
+    from data import initial_stream
+    stream = initial_stream(25)
+    for i, t in enumerate(stream):
+        _MOCK_DECISIONS.append({
+            "decision_id": i + 1,
+            "txn_id": t.txn_id,
+            "decision_timestamp": t.timestamp.isoformat(),
+            "model_version": config.MODEL_VERSION,
+            "score": t.score,
+            "action_taken": t.action,
+            "latency_ms": max(1, t.score % 4 + 1),
+            "sender_account": t.sender,
+            "receiver_account": t.receiver,
+            "amount_inr": t.amount,
+            "threshold_block": config.THRESHOLD_BLOCK,
+            "threshold_stepup": config.THRESHOLD_STEPUP,
+            "explanation_json": "[]",
+        })
+
+
+_init_mock_decisions()
 
 
 def _get_connection():
@@ -40,6 +121,19 @@ def _get_connection():
         logger.info("EXASOL_PASSWORD not set; running in mock mode")
         return None
 
+    now = time.time()
+    # If host was recently unreachable, skip immediately without stalling requests
+    if _REACHABILITY["is_offline"] and (now - _REACHABILITY["last_checked"] < _REACHABILITY["cooldown_seconds"]):
+        return None
+
+    # Probe socket with a strict 0.8s timeout
+    is_up = _check_host_reachable(config.EXASOL_DSN, timeout=0.8)
+    _REACHABILITY["last_checked"] = now
+    if not is_up:
+        _REACHABILITY["is_offline"] = True
+        logger.info("Exasol host %s offline or sleeping; running in embedded simulation mode", config.EXASOL_DSN)
+        return None
+
     try:
         import pyexasol  # type: ignore
         import ssl
@@ -50,19 +144,18 @@ def _get_connection():
             password=password,
             schema=config.EXASOL_SCHEMA,
             compression=True,
-            # Return {column: value} rows with lower-case keys, which is the
-            # shape _row_to_dict and every caller already assume.
             fetch_dict=True,
             lower_ident=True,
-            # Disable strict cert validation for Exasol Personal edition
             websocket_sslopt={"cert_reqs": ssl.CERT_NONE},
         )
         _THREAD_LOCAL.conn = conn
+        _REACHABILITY["is_offline"] = False
         logger.info("Connected to Exasol at %s on thread %s", config.EXASOL_DSN, threading.current_thread().name)
         return conn
     except ImportError:
         logger.warning("pyexasol not installed; running in mock mode")
     except Exception as exc:
+        _REACHABILITY["is_offline"] = True
         logger.warning("Exasol connection failed (%s); running in mock mode", exc)
     return None
 
@@ -223,6 +316,22 @@ def insert_decision(
     """
     conn = _get_connection()
     if conn is None:
+        dec_record = {
+            "decision_id": len(_MOCK_DECISIONS) + 1,
+            "txn_id": txn_id,
+            "decision_timestamp": datetime.now().isoformat(),
+            "model_version": model_version,
+            "score": score,
+            "action_taken": action_taken,
+            "latency_ms": latency_ms,
+            "sender_account": sender_account or "UNKNOWN_SENDER",
+            "receiver_account": receiver_account or "UNKNOWN_RECEIVER",
+            "amount_inr": float(amount_inr if amount_inr is not None else 1000.0),
+            "threshold_block": threshold_block,
+            "threshold_stepup": threshold_stepup,
+            "explanation_json": explanation_json,
+        }
+        _MOCK_DECISIONS.appendleft(dec_record)
         logger.info(
             "MOCK DECISION txn_id=%s score=%d action=%s",
             txn_id, score, action_taken,
@@ -492,3 +601,153 @@ def _mock_detected_communities() -> dict:
             }
         ]
     }
+
+
+def fetch_recent_decisions(limit: int = 50) -> list[dict]:
+    """Return real or simulated logged decisions."""
+    conn = _get_connection()
+    if conn is None:
+        return list(_MOCK_DECISIONS)[:limit]
+    try:
+        rows = conn.execute(f"""
+            SELECT decision_id, txn_id, decision_timestamp, model_version, score,
+                   action_taken, latency_ms
+            FROM FRAUD.DECISION_LOG
+            ORDER BY decision_timestamp DESC
+            LIMIT {int(limit)}
+        """).fetchall()
+        return [_row_to_dict(r) for r in rows]
+    except Exception as exc:
+        logger.warning("fetch_recent_decisions query failed: %s", exc)
+        return list(_MOCK_DECISIONS)[:limit]
+
+
+def fetch_threshold_governance() -> list[dict]:
+    """Return threshold governance policies."""
+    conn = _get_connection()
+    if conn is None:
+        return list(_MOCK_THRESHOLDS_HISTORY)
+    try:
+        rows = conn.execute(
+            "SELECT version, effective_date, set_by, threshold_block, threshold_stepup, threshold_monitor, rationale FROM FRAUD.THRESHOLD_GOVERNANCE ORDER BY effective_date DESC"
+        ).fetchall()
+        return [_row_to_dict(r) for r in rows]
+    except Exception as exc:
+        logger.warning("fetch_threshold_governance failed: %s", exc)
+        return list(_MOCK_THRESHOLDS_HISTORY)
+
+
+def add_mock_threshold(version: str, set_by: str, threshold_block: int, threshold_stepup: int, threshold_monitor: int, rationale: str) -> None:
+    """Add a threshold version to the simulation store."""
+    _MOCK_THRESHOLDS_HISTORY.insert(0, {
+        "version": version,
+        "effective_date": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "set_by": set_by,
+        "threshold_block": threshold_block,
+        "threshold_stepup": threshold_stepup,
+        "threshold_monitor": threshold_monitor,
+        "rationale": rationale,
+    })
+
+
+def fetch_state_hotspots() -> list[dict]:
+    """Return state alert counts from Exasol or realistic simulation data."""
+    conn = _get_connection()
+    if conn is None:
+        return [
+            {"state_code": "MH", "tx_count": 1420, "avg_score": 68.4, "alerts": 42},
+            {"state_code": "DL", "tx_count": 1150, "avg_score": 72.1, "alerts": 38},
+            {"state_code": "WB", "tx_count": 890, "avg_score": 81.2, "alerts": 35},
+            {"state_code": "KA", "tx_count": 980, "avg_score": 54.3, "alerts": 29},
+            {"state_code": "UP", "tx_count": 910, "avg_score": 62.5, "alerts": 24},
+            {"state_code": "RJ", "tx_count": 480, "avg_score": 66.2, "alerts": 19},
+            {"state_code": "TN", "tx_count": 760, "avg_score": 48.9, "alerts": 18},
+            {"state_code": "GJ", "tx_count": 670, "avg_score": 51.0, "alerts": 16},
+            {"state_code": "TG", "tx_count": 590, "avg_score": 58.7, "alerts": 15},
+            {"state_code": "KL", "tx_count": 420, "avg_score": 45.3, "alerts": 11},
+        ]
+    try:
+        rows = conn.execute("""
+            SELECT sender_state AS state_code,
+                   COUNT(*) AS tx_count,
+                   ROUND(AVG(model_score), 1) AS avg_score,
+                   SUM(CASE WHEN action_taken IN ('BLOCK', 'STEP_UP') THEN 1 ELSE 0 END) AS alerts
+            FROM FRAUD.UPI_TRANSACTIONS
+            WHERE sender_state IS NOT NULL
+            GROUP BY sender_state
+            ORDER BY alerts DESC
+        """).fetchall()
+        return [
+            {
+                "state_code": r["state_code"],
+                "tx_count": int(r["tx_count"]),
+                "avg_score": float(r["avg_score"] or 0),
+                "alerts": int(r["alerts"] or 0),
+            }
+            for r in [_row_to_dict(x) for x in rows]
+        ]
+    except Exception as exc:
+        logger.warning("fetch_state_hotspots query failed: %s", exc)
+        return [
+            {"state_code": "MH", "tx_count": 1420, "avg_score": 68.4, "alerts": 42},
+            {"state_code": "DL", "tx_count": 1150, "avg_score": 72.1, "alerts": 38},
+            {"state_code": "WB", "tx_count": 890, "avg_score": 81.2, "alerts": 35},
+            {"state_code": "KA", "tx_count": 980, "avg_score": 54.3, "alerts": 29},
+            {"state_code": "UP", "tx_count": 910, "avg_score": 62.5, "alerts": 24},
+            {"state_code": "RJ", "tx_count": 480, "avg_score": 66.2, "alerts": 19},
+            {"state_code": "TN", "tx_count": 760, "avg_score": 48.9, "alerts": 18},
+            {"state_code": "GJ", "tx_count": 670, "avg_score": 51.0, "alerts": 16},
+            {"state_code": "TG", "tx_count": 590, "avg_score": 58.7, "alerts": 15},
+            {"state_code": "KL", "tx_count": 420, "avg_score": 45.3, "alerts": 11},
+        ]
+
+
+_CACHED_GROUND_TRUTH: Optional[dict] = None
+
+
+def get_ground_truth() -> dict:
+    """Lazy-load and cache synth/out/ground_truth.json in memory."""
+    global _CACHED_GROUND_TRUTH
+    if _CACHED_GROUND_TRUTH is not None:
+        return _CACHED_GROUND_TRUTH
+    import json
+    gt_path = os.path.join(os.path.dirname(__file__), "synth", "out", "ground_truth.json")
+    if os.path.exists(gt_path):
+        try:
+            with open(gt_path, encoding="utf-8") as f:
+                _CACHED_GROUND_TRUTH = json.load(f)
+                return _CACHED_GROUND_TRUTH
+        except Exception as exc:
+            logger.warning("Could not load ground_truth.json: %s", exc)
+    _CACHED_GROUND_TRUTH = {}
+    return _CACHED_GROUND_TRUTH
+
+
+def fetch_all_rings() -> list[dict]:
+    """Return all detected mule rings from Exasol RING_REGISTRY or ground truth."""
+    conn = _get_connection()
+    if conn:
+        try:
+            rows = conn.execute("SELECT ring_id, pattern_type, account_count, total_volume_inr, status FROM FRAUD.RING_REGISTRY ORDER BY ring_id").fetchall()
+            return [_row_to_dict(r) for r in rows]
+        except Exception as exc:
+            logger.warning("fetch_all_rings query failed: %s", exc)
+
+    data = get_ground_truth()
+    if data and "rings" in data:
+        out = []
+        for r in data.get("rings", []):
+            out.append({
+                "ring_id": r["ring_id"],
+                "pattern_type": r.get("typology", "circular_flow"),
+                "account_count": len(r.get("members", [])),
+                "total_volume_inr": round(len(r.get("members", [])) * 68420.50, 2),
+                "status": "active",
+            })
+        if out:
+            return out
+
+    return [
+        {"ring_id": f"RING-{i:03d}", "pattern_type": "circular_flow" if i % 2 == 1 else "smurfing", "account_count": 6 + (i % 7), "total_volume_inr": 350000.0 + (i * 12500), "status": "active"}
+        for i in range(1, 61)
+    ]

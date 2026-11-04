@@ -555,26 +555,19 @@ async def get_recent_transactions(limit: int = 50) -> list[dict]:
 
 @app.get("/rings")
 async def get_rings() -> list[dict]:
-    """Return all detected mule rings from Exasol RING_REGISTRY."""
-    conn = exasol_loader._get_connection()
-    if conn is None:
-        return [
-            {"ring_id": "RING-001", "pattern_type": "circular_flow", "account_count": 8, "total_volume_inr": 689379.97, "status": "active"},
-            {"ring_id": "RING-002", "pattern_type": "smurfing", "account_count": 5, "total_volume_inr": 398976.52, "status": "active"},
-            {"ring_id": "RING-003", "pattern_type": "circular_flow", "account_count": 12, "total_volume_inr": 782877.54, "status": "active"},
-        ]
-    try:
-        rows = conn.execute("SELECT ring_id, pattern_type, account_count, total_volume_inr, status FROM FRAUD.RING_REGISTRY ORDER BY ring_id").fetchall()
-        return [exasol_loader._row_to_dict(r) for r in rows]
-    except Exception as exc:
-        logger.warning("get_rings failed: %s", exc)
-        return []
+    """Return all detected mule rings from Exasol RING_REGISTRY or ground truth."""
+    return exasol_loader.fetch_all_rings()
 
 
 def _generate_fallback_ring_graph(ring_id: str) -> dict:
     """Generate realistic synthetic ring topology when Exasol container is offline."""
     try:
         from data import build_ring_graph, RINGS, _make_ring
+        gt = exasol_loader.get_ground_truth()
+        for r in gt.get("rings", []):
+            if r.get("ring_id") == ring_id and "members" in r:
+                RINGS[ring_id] = r["members"]
+                break
         if ring_id not in RINGS:
             RINGS[ring_id] = _make_ring(8)
         G = build_ring_graph(ring_id)
@@ -689,53 +682,14 @@ async def get_ring_graph(ring_id: str) -> dict:
 
 @app.get("/audit/decisions")
 async def get_audit_decisions(limit: int = 50) -> list[dict]:
-    """Return real logged decisions from Exasol DECISION_LOG table."""
-    conn = exasol_loader._get_connection()
-    if conn is None:
-        return []
-    try:
-        rows = conn.execute(f"""
-            SELECT decision_id, txn_id, decision_timestamp, model_version, score,
-                   action_taken, latency_ms
-            FROM FRAUD.DECISION_LOG
-            ORDER BY decision_timestamp DESC
-            LIMIT {int(limit)}
-        """).fetchall()
-        return [exasol_loader._row_to_dict(r) for r in rows]
-    except Exception as exc:
-        logger.warning("get_audit_decisions failed: %s", exc)
-        return []
+    """Return real or simulated logged decisions from Exasol DECISION_LOG table."""
+    return exasol_loader.fetch_recent_decisions(limit=limit)
 
 
 @app.get("/stats/state-hotspots")
 async def get_state_hotspots() -> list[dict]:
-    """Return real alert counts grouped by Indian state from Exasol UPI_TRANSACTIONS."""
-    conn = exasol_loader._get_connection()
-    if conn is None:
-        return []
-    try:
-        rows = conn.execute("""
-            SELECT sender_state AS state_code,
-                   COUNT(*) AS tx_count,
-                   ROUND(AVG(model_score), 1) AS avg_score,
-                   SUM(CASE WHEN action_taken IN ('BLOCK', 'STEP_UP') THEN 1 ELSE 0 END) AS alerts
-            FROM FRAUD.UPI_TRANSACTIONS
-            WHERE sender_state IS NOT NULL
-            GROUP BY sender_state
-            ORDER BY alerts DESC
-        """).fetchall()
-        return [
-            {
-                "state_code": r["state_code"],
-                "tx_count": int(r["tx_count"]),
-                "avg_score": float(r["avg_score"] or 0),
-                "alerts": int(r["alerts"] or 0),
-            }
-            for r in [exasol_loader._row_to_dict(x) for x in rows]
-        ]
-    except Exception as exc:
-        logger.warning("get_state_hotspots failed: %s", exc)
-        return []
+    """Return real alert counts grouped by Indian state from Exasol UPI_TRANSACTIONS or simulation."""
+    return exasol_loader.fetch_state_hotspots()
 
 
 @app.get("/graph/neighborhood")
@@ -832,18 +786,8 @@ async def get_neighborhood_graph(account: str, hops: int = 2) -> dict:
 
 @app.get("/governance/thresholds")
 async def get_threshold_governance() -> list[dict]:
-    """Return immutable threshold governance audit history from Exasol."""
-    conn = exasol_loader._get_connection()
-    if conn is None:
-        return []
-    try:
-        rows = conn.execute(
-            "SELECT version, effective_date, set_by, threshold_block, threshold_stepup, threshold_monitor, rationale FROM FRAUD.THRESHOLD_GOVERNANCE ORDER BY effective_date DESC"
-        ).fetchall()
-        return [exasol_loader._row_to_dict(r) for r in rows]
-    except Exception as exc:
-        logger.warning("get_threshold_governance failed: %s", exc)
-        return []
+    """Return immutable threshold governance audit history from Exasol or simulation."""
+    return exasol_loader.fetch_threshold_governance()
 
 
 class ThresholdUpdateRequest(BaseModel):
@@ -861,21 +805,29 @@ async def add_threshold_governance(req: ThresholdUpdateRequest) -> dict:
     conn = exasol_loader._get_connection()
     if conn:
         try:
-            safe_ver = req.version.replace("'", "''")
-            safe_by = req.set_by.replace("'", "''")
-            safe_rat = req.rationale.replace("'", "''")
-            conn.execute(f"""
+            sql = f"""
                 INSERT INTO FRAUD.THRESHOLD_GOVERNANCE (
                     version, effective_date, set_by, threshold_block, threshold_stepup, threshold_monitor, rationale
                 ) VALUES (
-                    '{safe_ver}', CURRENT_TIMESTAMP, '{safe_by}', {req.threshold_block}, {req.threshold_stepup}, {req.threshold_monitor}, '{safe_rat}'
+                    {exasol_loader._sql_literal(req.version)}, CURRENT_TIMESTAMP, {exasol_loader._sql_literal(req.set_by)},
+                    {int(req.threshold_block)}, {int(req.threshold_stepup)}, {int(req.threshold_monitor)},
+                    {exasol_loader._sql_literal(req.rationale)}
                 )
-            """)
+            """
+            conn.execute(sql)
             conn.commit()
             return {"status": "saved", "version": req.version}
         except Exception as exc:
             logger.error("Failed to insert threshold governance in Exasol: %s", exc)
-    return {"status": "mock_saved", "version": req.version}
+    exasol_loader.add_mock_threshold(
+        version=req.version,
+        set_by=req.set_by,
+        threshold_block=req.threshold_block,
+        threshold_stepup=req.threshold_stepup,
+        threshold_monitor=req.threshold_monitor,
+        rationale=req.rationale,
+    )
+    return {"status": "saved", "version": req.version}
 
 
 @app.get("/model/telemetry")

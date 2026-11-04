@@ -26,7 +26,32 @@ function exportAudit(records) {
 }
 
 export default function Audit({ stream }) {
-  const [govList, setGovList] = useState([]);
+  const [govList, setGovList] = useState([
+    {
+      version: "v3",
+      date: "2026-04-10",
+      by: "r.sharma",
+      block: 90,
+      step: 70,
+      why: "RBI Master Direction on Mule Accounts compliance update",
+    },
+    {
+      version: "v2",
+      date: "2026-03-28",
+      by: "r.sharma",
+      block: 85,
+      step: 65,
+      why: "Post-deployment tuning against smurfing false positives",
+    },
+    {
+      version: "v1",
+      date: "2026-03-15",
+      by: "system",
+      block: 80,
+      step: 60,
+      why: "Initial baseline configuration",
+    },
+  ]);
   const [exasolDecisions, setExasolDecisions] = useState([]);
   const [auditTab, setAuditTab] = useState("exasol"); // "exasol" | "stream"
   const [showConfigModal, setShowConfigModal] = useState(false);
@@ -202,7 +227,17 @@ export default function Audit({ stream }) {
               </tr>
             </thead>
             <tbody>
-              {activeRecords.map((t, idx) => {
+              {activeRecords.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={auditTab === "exasol" ? 7 : 8}
+                    className="py-12 text-center text-slate-400 font-mono2 text-xs"
+                  >
+                    No audit records recorded yet. Start the stream or inject a transaction from the UPI Simulator.
+                  </td>
+                </tr>
+              ) : (
+                activeRecords.map((t, idx) => {
                 const score = t.score != null ? t.score : 0;
                 const act = t.action_taken || t.action || "ALLOW";
                 const isBlock = act === "BLOCK" || score >= 90;
@@ -276,7 +311,7 @@ export default function Audit({ stream }) {
                     </td>
                   </tr>
                 );
-              })}
+              }))}
             </tbody>
           </table>
         </div>
